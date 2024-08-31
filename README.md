@@ -3,9 +3,7 @@
 
 
 
-
-## Step by Step > comming soon
-
+# Step by Step instruction coming soon
 
 
 
