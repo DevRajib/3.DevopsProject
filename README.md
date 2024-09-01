@@ -10,7 +10,7 @@
 
 
 
-     <img align="center" src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png" alt="rajibsandy" height="139" />
+     <img align="center" src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png" height="139" />
 
 
 # Step by Step instruction coming soon
