@@ -4,7 +4,7 @@
 
 
 
-<img align="right" src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png"  height="200"  />
+<img src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png" align="right" height="200" align="laft" />
 
 
 
