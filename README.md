@@ -5,13 +5,7 @@
 
 
 
-[![MasterHead](https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png)](#)
-
-
-
-
-
-   [![MasterHead] <img src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png"  height="160" align="center" />
+## Devops Project <img src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png"  height="160" align="center" />
 
 
 
