@@ -11,7 +11,7 @@
 
 
 
-   <img align="center"src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png"  height="160" />
+   <img align="center" src="https://github.com/DevRajib/3.DevopsProject/blob/main/Devops.png"  height="160" />
 
 
 
