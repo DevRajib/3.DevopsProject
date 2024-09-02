@@ -17,7 +17,21 @@
 
 # 3-Tier Docker Deployment with GitHub Actions
 
-This guide will help you set up a 3-tier Docker deployment (React app, Django REST Framework (DRF) API, and a database) using GitHub Actions.
+
+To set up a three-tier Docker deployment (React frontend, Django Rest Framework API, and a Database) using GitHub Actions, you'll want to automate the deployment process to build and push Docker images to a container registry, followed by deploying these containers to a server or cloud service. Here is a guide to achieve this:
+
+# Overview of the setup:
+### 1.Frontend: React.js
+### 2.Backend: Django Rest Framework (DRF)
+### 3.Database: PostgreSQL (or any preferred database)
+
+
+# Steps Involved:
+
+### 1.Dockerize the Application: Create Dockerfile for each tier (Frontend, API, and Database).
+### 2.Compose Docker Setup: Use docker-compose to manage multi-container deployment.
+### 3.Set up GitHub Actions: Define CI/CD pipelines in a GitHub Actions workflow file to automate building, pushing, and deploying the Docker images.
+
 
 ## Step 1: Project Structure
 
@@ -186,13 +200,20 @@ jobs:
           docker-compose up -d --build
         "
 ```
+Explanation:
+Docker Build and Push: The workflow builds Docker images for the frontend and backend and pushes them to Docker Hub.
+Deploy: The deployment step connects to your server via SSH and pulls the latest Docker images, then restarts the services using docker-compose.
+Secrets Configuration:
+You need to configure the following secrets in your GitHub repository:
 
-## GitHub Secrets
+DOCKER_USERNAME: Your Docker Hub username.
+DOCKER_PASSWORD: Your Docker Hub password.
+SSH_USER: SSH user to connect to the server.
+SERVER_IP: IP address of your server.
+Step 4: Setting up the Server
+Ensure Docker and docker-compose are installed on your server. The server should be set up to receive the Docker images and run them.
 
-Add the following secrets to your GitHub repository:
-
-- `SSH_PRIVATE_KEY`: The private key to access your remote server.
-- `HOST`: The hostname or IP address of your remote server.
-
-
-# Step by Step instruction coming soon
+Additional Considerations:
+Database Migrations: Automate running migrations after deployment.
+Environment Variables: Use .env files or GitHub Secrets for securely passing environment variables (e.g., database credentials).
+By following this guide, you will have a fully automated CI/CD pipeline that builds, pushes, and deploys your three-tier Docker application via GitHub Actions.
