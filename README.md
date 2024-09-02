@@ -14,80 +14,113 @@
 
 # 3-Tier Docker Deployment Using GitHub Actions
 
-This guide outlines a basic setup for a 3-tier Docker deployment using GitHub Actions. The tiers include:
-1. **Frontend**: React application
-2. **Backend**: API (e.g., Node.js)
-3. **Database**: PostgreSQL
 
-The GitHub Actions workflow will automate the build, push, and deployment of your Docker containers to a server.
+# 3-Tier Docker Deployment with GitHub Actions
 
-## Step 1: Prepare Dockerfiles
+This guide will help you set up a 3-tier Docker deployment (React app, Django REST Framework (DRF) API, and a database) using GitHub Actions.
 
-### Frontend (React)
+## Step 1: Project Structure
 
-Create a `Dockerfile` in your React project:
-
-```Dockerfile
-# Dockerfile for React App
-FROM node:14-alpine as build
-WORKDIR /app
-COPY package.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+```bash
+my_project/
+│
+├── frontend/           # React app
+│   ├── public/
+│   ├── src/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── ...
+├── backend/            # Django + DRF
+│   ├── app/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── manage.py
+├── db/                 # Database
+│   └── Dockerfile
+├── docker-compose.yml  # Docker Compose file
+└── .github/
+    └── workflows/
+        └── ci.yml      # GitHub Actions workflow file
 ```
 
-### Backend (API)
+## Step 2: Dockerfiles for Each Service
 
-Create a `Dockerfile` for your backend (Node.js example):
+### Frontend (React) Dockerfile
 
 ```Dockerfile
-# Dockerfile for Node.js API
-FROM node:14-alpine
+# frontend/Dockerfile
+FROM node:16-alpine
+
 WORKDIR /app
+
 COPY package.json ./
-RUN npm install
-COPY . .
+COPY yarn.lock ./
+
+RUN yarn install
+
+COPY . ./
+
+RUN yarn build
+
 EXPOSE 3000
-CMD ["npm", "start"]
+
+CMD ["yarn", "start"]
 ```
 
-### Database
+### Backend (Django + DRF) Dockerfile
 
-For the database, you can use a standard Docker image such as PostgreSQL or MySQL. No custom `Dockerfile` is necessary.
+```Dockerfile
+# backend/Dockerfile
+FROM python:3.9-slim
 
-## Step 2: Docker Compose for Local Development
+WORKDIR /app
 
-Create a `docker-compose.yml` file to orchestrate the multi-container application:
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app.wsgi:application"]
+```
+
+### Database Dockerfile (optional if using a prebuilt image like PostgreSQL)
+
+```Dockerfile
+# db/Dockerfile (Example using PostgreSQL)
+FROM postgres:13-alpine
+```
+
+## Step 3: Docker Compose File
 
 ```yaml
-version: '3.8'
+# docker-compose.yml
+version: '3'
+
 services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "3000:3000"
+    depends_on:
+      - backend
 
   backend:
     build: ./backend
     ports:
-      - "3000:3000"
+      - "8000:8000"
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgres://user:password@db:5432/dbname
+      - DATABASE_URL=postgres://user:password@db:5432/mydatabase
 
   db:
-    image: postgres:13
+    image: postgres:13-alpine
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: dbname
+      POSTGRES_DB: mydatabase
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -95,13 +128,10 @@ volumes:
   postgres_data:
 ```
 
-## Step 3: GitHub Actions Workflow
-
-Create a `.github/workflows/deploy.yml` file to automate building and deploying your Docker containers.
-
-Example workflow:
+## Step 4: GitHub Actions Workflow
 
 ```yaml
+# .github/workflows/ci.yml
 name: CI/CD Pipeline
 
 on:
@@ -114,64 +144,55 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      docker:
-        image: docker:19.03.12
-        options: --privileged
+      db:
+        image: postgres:13-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: mydatabase
         ports:
-          - 80:80
+          - 5432:5432
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
 
-      - name: Build and push frontend
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/react-frontend:latest ./frontend
-          docker push ${{ secrets.DOCKER_USERNAME }}/react-frontend:latest
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: false
+        tags: username/myapp:latest
 
-      - name: Build and push backend
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/node-backend:latest ./backend
-          docker push ${{ secrets.DOCKER_USERNAME }}/node-backend:latest
-
-      - name: Deploy to server
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          ssh -i <path_to_key> user@your_server "docker-compose -f /path/to/docker-compose.yml pull && docker-compose -f /path/to/docker-compose.yml up -d"
+    - name: Deploy to server
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        HOST: ${{ secrets.HOST }}
+      run: |
+        ssh -o StrictHostKeyChecking=no user@$HOST "
+          cd /path/to/project &&
+          docker-compose down &&
+          docker-compose up -d --build
+        "
 ```
 
-## Step 4: Set Up Secrets
+## GitHub Secrets
 
-In your GitHub repository, set up the following secrets:
+Add the following secrets to your GitHub repository:
 
-- `DOCKER_USERNAME`: Your Docker Hub username.
-- `DOCKER_PASSWORD`: Your Docker Hub password or access token.
-- `SSH_PRIVATE_KEY`: Your private SSH key for accessing the server.
-
-## Step 5: Server Setup
-
-Ensure your server has Docker and Docker Compose installed, and that your `docker-compose.yml` file is in place. The final deployment step will SSH into your server, pull the latest Docker images, and bring up the containers.
-
-## Step 6: Test and Monitor
-
-Once the GitHub Actions workflow is set up, push to the `main` branch and monitor the workflow in the Actions tab of your GitHub repository. You should see your containers built, pushed, and deployed automatically.
-
-### Additional Enhancements
-
-- Add automatic database migrations.
-- Implement health checks for your containers.
-- Set up rollback strategies in case of failures.
-
+- `SSH_PRIVATE_KEY`: The private key to access your remote server.
+- `HOST`: The hostname or IP address of your remote server.
 
 
 # Step by Step instruction coming soon
