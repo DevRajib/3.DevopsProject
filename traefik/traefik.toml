@@ -1,0 +1,29 @@
+[entryPoints]
+  [entryPoints.http]
+    address = ":80"
+  [entryPoints.https]
+    address = ":443"
+
+[certificatesResolvers.myresolver.acme]
+  email = "your-email@example.com"
+  storage = "acme.json"
+  [certificatesResolvers.myresolver.acme.httpChallenge]
+    entryPoint = "http"
+
+[http.routers]
+  [http.routers.frontend]
+    rule = "Host(\`decorationbd.com\`)"
+    entryPoints = ["https"]
+    service = "frontend"
+    [http.routers.frontend.tls]
+      certResolver = "myresolver"
+
+  [http.routers.backend]
+    rule = "Host(\`api.decorationbd.com\`)"
+    entryPoints = ["https"]
+    service = "backend"
+    [http.routers.backend.tls]
+      certResolver = "myresolver"
+
+[providers.docker]
+  exposedByDefault = false
